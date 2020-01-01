@@ -60,16 +60,21 @@ function git_auto_push {
 
   gap_commits=($(git log --format="%H" origin/master..master))
   logger::info "Push $num_to_push commit(s)..."
+
+  if [[ ! $@ =~ -f ]]; then
+    for (( i=$num_commits-1 ; i>=$num_commits-$num_to_push ; i-- )) ; do
+      local commit=${gap_commits[i]}
+      git log --format=oneline -n 1 $commit
+    done
+
+    printf "Press Enter to continue or Ctrl+C to stop..."
+    read -r
+  fi
+
   for (( i=$num_commits-1 ; i>=$num_commits-$num_to_push ; i-- )) ; do
     local commit=${gap_commits[i]}
     local command="git push origin $commit:master"
-    echo -n "Push commit: "
-    git log --format=oneline -n 1 $commit
-    if [[ $1 == "--dry-run" || $1 == "-d" ]]; then
-      logger::info "<dry run>" $command
-    else
-      eval $command
-    fi
+    echo $command
   done
 }
 
