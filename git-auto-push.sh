@@ -22,12 +22,13 @@ function print_commits {
 }
 
 function git_auto_push {
+  branch=${1:-master}
   num_to_push=$(( ( RANDOM % $max_to_push ) + 1 ))
 
-  logger::info "Get the gap between orgin/master and master..."
-  git log --format="oneline" origin/master..master
+  logger::info "Get the gap between orgin/$branch and $branch..."
+  git log --format="oneline" origin/$branch..$branch
 
-  gap_commits=($(git log --format="%H" origin/master..master))
+  gap_commits=($(git log --format="%H" origin/$branch..$branch))
   num_commits=${#gap_commits[@]}
   if (( $num_commits == 0 )); then
     logger::error "Nothing to push!"
@@ -38,8 +39,8 @@ function git_auto_push {
     num_to_push=$num_commits
   fi
   
-  logger::info "Get the latest commit on orgin/master..."
-  latest_commit=$(git log --format="%h" -n 1 origin/master)
+  logger::info "Get the latest commit on orgin/$branch..."
+  latest_commit=$(git log --format="%h" -n 1 origin/$branch)
   logger::info "$latest_commit"
 
   logger::info "Update commit date since the lastest commit..."
@@ -56,9 +57,9 @@ function git_auto_push {
   # ' $latest_commit..HEAD
 
   logger::info "Get the gap commits again..."
-  git log --format="oneline" origin/master..master
+  git log --format="oneline" origin/$branch..$branch
 
-  gap_commits=($(git log --format="%H" origin/master..master))
+  gap_commits=($(git log --format="%H" origin/$branch..$branch))
   logger::info "Push $num_to_push commit(s)..."
 
   if [[ ! $@ =~ -f ]]; then
@@ -73,8 +74,8 @@ function git_auto_push {
 
   for (( i=$num_commits-1 ; i>=$num_commits-$num_to_push ; i-- )) ; do
     local commit=${gap_commits[i]}
-    local command="git push origin $commit:master"
-    echo $command
+    local command="git push origin $commit:$branch"
+    $command
   done
 }
 
