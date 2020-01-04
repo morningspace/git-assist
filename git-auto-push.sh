@@ -2,20 +2,23 @@
 
 max_to_push=2
 
-function logger::info {
-  echo -e "\033[1;36mINFO\033[0m $@"
+function info {
+  # Cyan
+  printf "\033[0;36mINFO\033[0m $@\n"
 }
 
-function logger::warn {
-  echo -e "\033[1;33mWARN\033[0m $@"
+function warn {
+  # Yellow
+  printf "\033[0;33mWARN\033[0m $@\n"
 }
 
-function logger::error {
-  echo -e "\033[1;31mERRO\033[0m $@"
+function error {
+  # Red
+  printf "\033[0;31mERRO\033[0m $@\n"
 }
 
 function print_commits {
-  logger::info "Commits as below:"
+  info "Commits as below:"
   for commit in $@; do
     echo $commit
   done
@@ -25,13 +28,13 @@ function git_auto_push {
   branch=${1:-master}
   num_to_push=$(( ( RANDOM % $max_to_push ) + 1 ))
 
-  logger::info "Get the gap between orgin/$branch and $branch..."
+  info "Get the gap between orgin/$branch and $branch..."
   git log --format="oneline" origin/$branch..$branch
 
   gap_commits=($(git log --format="%H" origin/$branch..$branch))
   num_commits=${#gap_commits[@]}
   if (( $num_commits == 0 )); then
-    logger::error "Nothing to push!"
+    error "Nothing to push!"
     exit 0
   fi
 
@@ -39,11 +42,11 @@ function git_auto_push {
     num_to_push=$num_commits
   fi
   
-  logger::info "Get the latest commit on orgin/$branch..."
+  info "Get the latest commit on orgin/$branch..."
   latest_commit=$(git log --format="%h" -n 1 origin/$branch)
-  logger::info "$latest_commit"
+  info "$latest_commit"
 
-  logger::info "Update commit date since the lastest commit..."
+  info "Update commit date since the lastest commit..."
   git filter-branch -f --env-filter '
     export GIT_AUTHOR_DATE="$(date +"%c %z")"
     export GIT_COMMITTER_DATE="$(date +"%c %z")"
@@ -56,11 +59,11 @@ function git_auto_push {
   #   export GIT_AUTHOR_EMAIL="$CORRECT_EMAIL"
   # ' $latest_commit..HEAD
 
-  logger::info "Get the gap commits again..."
+  info "Get the gap commits again..."
   git log --format="oneline" origin/$branch..$branch
 
   gap_commits=($(git log --format="%H" origin/$branch..$branch))
-  logger::info "Push $num_to_push commit(s)..."
+  info "Push $num_to_push commit(s)..."
 
   if [[ ! $@ =~ -f ]]; then
     for (( i=$num_commits-1 ; i>=$num_commits-$num_to_push ; i-- )) ; do
@@ -81,7 +84,7 @@ function git_auto_push {
 
 function git_test_repo {
   if ! git remote -v 1>/dev/null 2>&1; then
-    logger::error "Not a git repository!"
+    error "Not a git repository!"
     exit 0
   fi
 }
