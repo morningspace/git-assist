@@ -1,7 +1,5 @@
 #/bin/bash
 
-max_to_push=2
-
 function info {
   # Cyan
   printf "\033[0;36mINFO\033[0m $@\n"
@@ -24,9 +22,44 @@ function print_commits {
   done
 }
 
-function git_auto_push {
-  branch=${1:-master}
-  num_to_push=$(( ( RANDOM % $max_to_push ) + 1 ))
+function ensure_git_repo {
+  if ! git remote -v 1>/dev/null 2>&1; then
+    error "Not a git repository!"
+    exit 0
+  fi
+}
+
+function get_current_branch {
+  git rev-parse --abbrev-ref HEAD
+}
+
+function gitx_change {
+  # git filter-branch -f --env-filter '
+  #   export GIT_COMMITTER_NAME="$CORRECT_NAME"
+  #   export GIT_COMMITTER_EMAIL="$CORRECT_EMAIL"
+  #   export GIT_AUTHOR_NAME="$CORRECT_NAME"
+  #   export GIT_AUTHOR_EMAIL="$CORRECT_EMAIL"
+  # ' $latest_commit..HEAD
+  error "Not supported yet"
+}
+
+function gitx_mv {
+  error "Not supported yet"
+}
+
+function gitx_push {
+  ensure_git_repo
+
+  local branch=$(get_current_branch)
+  local num_to_push=1
+  if [[ $@ =~ -[0-9]+ ]]; then
+    num_to_push=$(echo $@ | grep -o "\-[0-9]\+")
+    num_to_push=${num_to_push#-}
+  fi
+  if [[ $@ =~ -r ]]; then
+    info "The number of commits to be pushed will be <= $num_to_push"
+    num_to_push=$(( ( RANDOM % $num_to_push ) + 1 ))
+  fi
 
   info "Get the gap between orgin/$branch and $branch..."
   git log --format="oneline" origin/$branch..$branch
@@ -34,7 +67,7 @@ function git_auto_push {
   gap_commits=($(git log --format="%H" origin/$branch..$branch))
   num_commits=${#gap_commits[@]}
   if (( $num_commits == 0 )); then
-    error "Nothing to push!"
+    warn "Nothing to push!"
     exit 0
   fi
 
@@ -47,17 +80,13 @@ function git_auto_push {
   info "$latest_commit"
 
   info "Update commit date since the lastest commit..."
-  git filter-branch -f --env-filter '
+  if ! git filter-branch -f --env-filter '
     export GIT_AUTHOR_DATE="$(date +"%c %z")"
     export GIT_COMMITTER_DATE="$(date +"%c %z")"
-  ' $latest_commit..HEAD
-
-  # git filter-branch -f --env-filter '
-  #   export GIT_COMMITTER_NAME="$CORRECT_NAME"
-  #   export GIT_COMMITTER_EMAIL="$CORRECT_EMAIL"
-  #   export GIT_AUTHOR_NAME="$CORRECT_NAME"
-  #   export GIT_AUTHOR_EMAIL="$CORRECT_EMAIL"
-  # ' $latest_commit..HEAD
+  ' $latest_commit..HEAD; then
+    error "Update commit date failed"
+    exit 1
+  fi
 
   info "Get the gap commits again..."
   git log --format="oneline" origin/$branch..$branch
@@ -82,12 +111,27 @@ function git_auto_push {
   done
 }
 
-function git_test_repo {
-  if ! git remote -v 1>/dev/null 2>&1; then
-    error "Not a git repository!"
-    exit 0
-  fi
+function usage {
+  cat << EOF
+
+The Git eXtended Tool Set
+ 
+Usage: ${0##*/} COMMAND [OPTIONS]
+
+Commands:
+  push    Only push part of the local commits while defer other ones
+  change  Change committer and author for your commits
+  mv      Move folders or files with commit history to another repository
+
+EOF
 }
 
-git_test_repo
-git_auto_push $@
+if [[ $1 == push ]]; then
+  gitx_push ${@:2}
+elif [[ $1 == change ]]; then
+  gitx_change ${@:2}
+elif [[ $1 == mv ]]; then
+  gitx_mv ${@:2}
+else
+  usage
+fi
