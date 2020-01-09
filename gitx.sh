@@ -33,20 +33,10 @@ function get_current_branch {
   git rev-parse --abbrev-ref HEAD
 }
 
-function gitx_change {
-  # git filter-branch -f --env-filter '
-  #   export GIT_COMMITTER_NAME="$CORRECT_NAME"
-  #   export GIT_COMMITTER_EMAIL="$CORRECT_EMAIL"
-  #   export GIT_AUTHOR_NAME="$CORRECT_NAME"
-  #   export GIT_AUTHOR_EMAIL="$CORRECT_EMAIL"
-  # ' $latest_commit..HEAD
-  error "Not supported yet"
-}
-
-function gitx_mv {
-  error "Not supported yet"
-}
-
+# OPTIONS:
+#   -n  The number of commits to be pushed
+#   -r  Randomize the number of commits to be pushed
+#   -f  Force to push commits
 function gitx_push {
   ensure_git_repo
 
@@ -79,12 +69,12 @@ function gitx_push {
   latest_commit=$(git log --format="%h" -n 1 origin/$branch)
   info "$latest_commit"
 
-  info "Update commit date since the lastest commit..."
+  info "Update commits since the lastest commit..."
   if ! git filter-branch -f --env-filter '
     export GIT_AUTHOR_DATE="$(date +"%c %z")"
     export GIT_COMMITTER_DATE="$(date +"%c %z")"
   ' $latest_commit..HEAD; then
-    error "Update commit date failed"
+    error "Update commits failed"
     exit 1
   fi
 
@@ -109,6 +99,55 @@ function gitx_push {
     local command="git push origin $commit:$branch"
     $command
   done
+}
+
+# OPTIONS:
+#   -u  The git user name
+#   -e  The git user email
+#   -c  The committer name
+function gitx_change {
+  ensure_git_repo
+
+  local user_name=$(git config user.name)
+  local user_email=$(git config user.email)
+  local change_author
+  if [[ $@ =~ -u[[:space:]]+ ]]; then
+    user_name=$(echo $@ | grep -o "\-u[[:space:]]\+[^\-]\+")
+    user_name=$(echo ${user_name#-u} | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+    change_author=1
+  fi
+  if [[ $@ =~ -e[[:space:]]+ ]]; then
+    user_email=$(echo $@ | grep -o "\-e[[:space:]]\+[^\-]\+")
+    user_email=$(echo ${user_email#-e} | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+  fi
+  if [[ $@ =~ -c[[:space:]]+ ]]; then
+    user_name=$(echo $@ | grep -o "\-c[[:space:]]\+[^\-]\+")
+    user_name=$(echo ${user_name#-c} | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+  fi
+
+  info "The Committer name: $user_name"
+  info "The Committer email: $user_email"
+  [[ $change_author == 1 ]] && info "The Author name and email will also be changed."
+
+  printf "Press Enter to continue or Ctrl+C to stop..."
+  read -r
+
+  info "Update commits with specified user information..."
+  if ! git filter-branch -f --env-filter '
+    export GIT_COMMITTER_NAME="$user_name"
+    export GIT_COMMITTER_EMAIL="$user_email"
+    if [[ $change_author == 1 ]]; then
+      export GIT_AUTHOR_NAME="$user_name"
+      export GIT_AUTHOR_EMAIL="$user_email"
+    fi
+  ' -- --all; then
+    error "Update commits failed"
+    exit 1
+  fi
+}
+
+function gitx_mv {
+  error "Not supported yet"
 }
 
 function usage {
