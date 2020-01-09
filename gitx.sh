@@ -104,7 +104,7 @@ function gitx_push {
 # OPTIONS:
 #   -u  The git user name
 #   -e  The git user email
-#   -c  The committer name
+#   -a  Change both committer and author
 function gitx_change {
   ensure_git_repo
 
@@ -114,33 +114,31 @@ function gitx_change {
   if [[ $@ =~ -u[[:space:]]+ ]]; then
     user_name=$(echo $@ | grep -o "\-u[[:space:]]\+[^\-]\+")
     user_name=$(echo ${user_name#-u} | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
-    change_author=1
   fi
   if [[ $@ =~ -e[[:space:]]+ ]]; then
     user_email=$(echo $@ | grep -o "\-e[[:space:]]\+[^\-]\+")
     user_email=$(echo ${user_email#-e} | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
   fi
-  if [[ $@ =~ -c[[:space:]]+ ]]; then
-    user_name=$(echo $@ | grep -o "\-c[[:space:]]\+[^\-]\+")
-    user_name=$(echo ${user_name#-c} | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+  if [[ $@ =~ -a ]]; then
+    change_author=1
   fi
 
-  info "The Committer name: $user_name"
-  info "The Committer email: $user_email"
-  [[ $change_author == 1 ]] && info "The Author name and email will also be changed."
+  info "The user name: $user_name"
+  info "The user email: $user_email"
+  [[ $change_author == 1 ]] && info "Change both committer and author."
 
   printf "Press Enter to continue or Ctrl+C to stop..."
   read -r
 
   info "Update commits with specified user information..."
-  if ! git filter-branch -f --env-filter '
-    export GIT_COMMITTER_NAME="$user_name"
-    export GIT_COMMITTER_EMAIL="$user_email"
+  if ! git filter-branch -f --env-filter "
+    export GIT_COMMITTER_NAME=$user_name
+    export GIT_COMMITTER_EMAIL=$user_email
     if [[ $change_author == 1 ]]; then
-      export GIT_AUTHOR_NAME="$user_name"
-      export GIT_AUTHOR_EMAIL="$user_email"
+      export GIT_AUTHOR_NAME=$user_name
+      export GIT_AUTHOR_EMAIL=$user_email
     fi
-  ' -- --all; then
+  " -- --all; then
     error "Update commits failed"
     exit 1
   fi
