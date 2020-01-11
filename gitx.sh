@@ -132,11 +132,11 @@ function gitx_change {
 
   info "Update commits with specified user information..."
   if ! git filter-branch -f --env-filter "
-    export GIT_COMMITTER_NAME=$user_name
-    export GIT_COMMITTER_EMAIL=$user_email
+    export GIT_COMMITTER_NAME=\"$user_name\"
+    export GIT_COMMITTER_EMAIL=\"$user_email\"
     if [[ $change_author == 1 ]]; then
-      export GIT_AUTHOR_NAME=$user_name
-      export GIT_AUTHOR_EMAIL=$user_email
+      export GIT_AUTHOR_NAME=\"$user_name\"
+      export GIT_AUTHOR_EMAIL=\"$user_email\"
     fi
   " -- --all; then
     error "Update commits failed"
