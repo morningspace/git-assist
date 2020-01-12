@@ -60,6 +60,7 @@ function get_current_branch {
 # OPTIONS:
 #   -n  The number of commits to be pushed
 #   -r  Randomize the number of commits to be pushed
+#   -f  Force to push
 function gitx_push {
   ensure_git_repo
 
@@ -116,9 +117,11 @@ function gitx_push {
   ! confirm "Are you sure to push local changes to remote repository?" && return
 
   info "Push local changes to remote repository..."
+  local args
+  [[ $@ =~ -f ]] && args+="--force"
   for (( i=$num_commits-1 ; i>=$num_commits-$num_to_push ; i-- )) ; do
     local commit=${gap_commits[i]}
-    local command="git push origin $commit:$branch"
+    local command="git push $args origin $commit:$branch"
     $command
   done
 }
