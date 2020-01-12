@@ -15,6 +15,30 @@ function error {
   printf "\033[0;31mERRO\033[0m $@\n"
 }
 
+function pause {
+  printf "Press Enter to continue or Ctrl+C to stop..."
+  read -r
+}
+
+function confirm {
+  local input
+  while true; do
+    read -r -p "$1 [Y/n] " input
+    input=${input:-Y}
+    case $input in
+      [yY][eE][sS]|[yY])
+        return 0
+        ;;
+      [nN][oO]|[nN])
+        return 1
+        ;;
+      *)
+        echo "Invalid input..."
+        ;;
+    esac
+  done
+}
+
 function print_commits {
   info "Commits as below:"
   for commit in $@; do
@@ -36,7 +60,6 @@ function get_current_branch {
 # OPTIONS:
 #   -n  The number of commits to be pushed
 #   -r  Randomize the number of commits to be pushed
-#   -f  Force to push commits
 function gitx_push {
   ensure_git_repo
 
@@ -57,7 +80,7 @@ function gitx_push {
   gap_commits=($(git log --format="%H" origin/$branch..$branch))
   num_commits=${#gap_commits[@]}
   if (( $num_commits == 0 )); then
-    warn "Nothing to push!"
+    warn "Everything is up-to-date. There's nothing to push!"
     exit 0
   fi
 
@@ -69,12 +92,14 @@ function gitx_push {
   latest_commit=$(git log --format="%h" -n 1 origin/$branch)
   info "$latest_commit"
 
-  info "Update commits since the lastest commit..."
+  ! confirm "Are you sure to change commits in local repository?" && return
+
+  info "Change commits since the lastest commit..."
   if ! git filter-branch -f --env-filter '
     export GIT_AUTHOR_DATE="$(date +"%c %z")"
     export GIT_COMMITTER_DATE="$(date +"%c %z")"
   ' $latest_commit..HEAD; then
-    error "Update commits failed"
+    error "Change commits failed"
     exit 1
   fi
 
@@ -82,18 +107,15 @@ function gitx_push {
   git log --format="oneline" origin/$branch..$branch
 
   gap_commits=($(git log --format="%H" origin/$branch..$branch))
-  info "Push $num_to_push commit(s)..."
+  info "Push $num_to_push commit(s):"
+  for (( i=$num_commits-1 ; i>=$num_commits-$num_to_push ; i-- )) ; do
+    local commit=${gap_commits[i]}
+    git log --format=oneline -n 1 $commit
+  done
 
-  if [[ ! $@ =~ -f ]]; then
-    for (( i=$num_commits-1 ; i>=$num_commits-$num_to_push ; i-- )) ; do
-      local commit=${gap_commits[i]}
-      git log --format=oneline -n 1 $commit
-    done
+  ! confirm "Are you sure to push local changes to remote repository?" && return
 
-    printf "Press Enter to continue or Ctrl+C to stop..."
-    read -r
-  fi
-
+  info "Push local changes to remote repository..."
   for (( i=$num_commits-1 ; i>=$num_commits-$num_to_push ; i-- )) ; do
     local commit=${gap_commits[i]}
     local command="git push origin $commit:$branch"
@@ -127,10 +149,9 @@ function gitx_change {
   info "The user email: $user_email"
   [[ $change_author == 1 ]] && info "Change both committer and author."
 
-  printf "Press Enter to continue or Ctrl+C to stop..."
-  read -r
+  ! confirm "Are you sure to change commits in local repository?" && return
 
-  info "Update commits with specified user information..."
+  info "Change commits with specified user information..."
   if ! git filter-branch -f --env-filter "
     export GIT_COMMITTER_NAME=\"$user_name\"
     export GIT_COMMITTER_EMAIL=\"$user_email\"
@@ -139,9 +160,14 @@ function gitx_change {
       export GIT_AUTHOR_EMAIL=\"$user_email\"
     fi
   " -- --all; then
-    error "Update commits failed"
+    error "Change commits failed"
     exit 1
   fi
+
+  ! confirm "Are you sure to push local changes to remote repository?" && return
+
+  info "Push local changes to remote repository..."
+  git push --force --all origin
 }
 
 function gitx_mv {
