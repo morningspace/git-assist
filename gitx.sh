@@ -66,15 +66,34 @@ function gitx_push {
 
   local branch=$(get_current_branch)
   local num_to_push=1
-  if [[ $@ =~ -[0-9]+ ]]; then
-    num_to_push=$(echo $@ | grep -o "\-[0-9]\+")
-    num_to_push=${num_to_push#-}
-  fi
-  if [[ $@ =~ -r ]]; then
-    info "The number of commits to be pushed will be <= $num_to_push"
+  local random=0
+  local force=0
+  while [[ $# -gt 0 ]]; do    
+    case "$1" in
+    -r|--random)
+      random=1
+      shift # past argument
+      ;;
+    -f|--force)
+      force=1
+      shift # past argument
+      ;;
+    *)
+      if [[ $1 =~ -[0-9]+ ]]; then
+        num_to_push=${1#-}
+      else
+        POSITIONAL+=("$1") # save it in an array for later use
+      fi
+      shift # past argument
+      ;;
+    esac
+  done
+
+  if [[ $random == 1 ]]; then
     num_to_push=$(( ( RANDOM % $num_to_push ) + 1 ))
   fi
 
+  info "We are going to push $num_to_push commit(s)"
   info "Get the gap between orgin/$branch and $branch..."
   git log --format="oneline" origin/$branch..$branch
 
@@ -108,7 +127,7 @@ function gitx_push {
   git log --format="oneline" origin/$branch..$branch
 
   gap_commits=($(git log --format="%H" origin/$branch..$branch))
-  info "Push $num_to_push commit(s):"
+  info "The commit(s) to be pushed:"
   for (( i=$num_commits-1 ; i>=$num_commits-$num_to_push ; i-- )) ; do
     local commit=${gap_commits[i]}
     git log --format=oneline -n 1 $commit
@@ -118,7 +137,7 @@ function gitx_push {
 
   info "Push local changes to remote repository..."
   local args
-  [[ $@ =~ -f ]] && args+="--force"
+  [[ $force == 1 ]] && args+="--force"
   for (( i=$num_commits-1 ; i>=$num_commits-$num_to_push ; i-- )) ; do
     local commit=${gap_commits[i]}
     local command="git push $args origin $commit:$branch"
@@ -129,40 +148,81 @@ function gitx_push {
 # OPTIONS:
 #   -u  The git user name
 #   -e  The git user email
-#   -a  Change both committer and author
-function gitx_change {
+#   -c  Change committer only
+#   -U  The git user to be changed specified by name
+#   -E  The git user to be changed specified by email
+function gitx_chuser {
   ensure_git_repo
 
-  local user_name=$(git config user.name)
-  local user_email=$(git config user.email)
-  local change_author
-  if [[ $@ =~ -u[[:space:]]+ ]]; then
-    user_name=$(echo $@ | grep -o "\-u[[:space:]]\+[^\-]\+")
-    user_name=$(echo ${user_name#-u} | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
-  fi
-  if [[ $@ =~ -e[[:space:]]+ ]]; then
-    user_email=$(echo $@ | grep -o "\-e[[:space:]]\+[^\-]\+")
-    user_email=$(echo ${user_email#-e} | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
-  fi
-  if [[ $@ =~ -a ]]; then
-    change_author=1
-  fi
+  export USER_NAME=$(git config user.name)
+  export USER_EMAIL=$(git config user.email)
+  export COMMITTER_ONLY
+  export USER_TO_CHANGE
+  export EMAIL_TO_CHANGE
+  while [[ $# -gt 0 ]]; do    
+    case "$1" in
+    -u|--user)
+      USER_NAME="$2"
+      shift # past argument
+      shift # past value
+      ;;
+    -e|--email)
+      USER_EMAIL="$2"
+      shift # past argument
+      shift # past value
+      ;;
+    -c|--committer-only)
+      COMMITTER_ONLY=1
+      shift # past argument
+      ;;
+    -U|--user-to-change)
+      USER_TO_CHANGE="$2"
+      shift # past argument
+      shift # past value
+      ;;
+    -E|--email-to-change)
+      EMAIL_TO_CHANGE="$2"
+      shift # past argument
+      shift # past value
+      ;;
+    *)      # unknown option
+      POSITIONAL+=("$1") # save it in an array for later use
+      shift # past argument
+      ;;
+    esac
+  done
 
-  info "The user name: $user_name"
-  info "The user email: $user_email"
-  [[ $change_author == 1 ]] && info "Change both committer and author."
+  info "The user name: $USER_NAME"
+  info "The user email: $USER_EMAIL"
+  if [[ $COMMITTER_ONLY == 1 ]]; then
+    info "Change committer only."
+  else
+    info "Change both committer and author."
+  fi
 
   ! confirm "Are you sure to change commits in local repository?" && return
 
   info "Change commits with specified user information..."
-  if ! git filter-branch -f --env-filter "
-    export GIT_COMMITTER_NAME=\"$user_name\"
-    export GIT_COMMITTER_EMAIL=\"$user_email\"
-    if [[ $change_author == 1 ]]; then
-      export GIT_AUTHOR_NAME=\"$user_name\"
-      export GIT_AUTHOR_EMAIL=\"$user_email\"
+  if ! git filter-branch -f --env-filter '
+    if [[ -z $USER_TO_CHANGE && -z $EMAIL_TO_CHANGE ]]; then
+      change_it=0
+    elif [[ $USER_TO_CHANGE == $GIT_AUTHOR_NAME || $USER_TO_CHANGE == $GIT_COMMITTER_NAME ]]; then
+      change_it=1
+    elif [[ $EMAIL_TO_CHANGE == $GIT_AUTHOR_EMAIL || $EMAIL_TO_CHANGE == $GIT_COMMITTER_EMAIL ]]; then
+      change_it=1
+    else
+      change_it=0
     fi
-  " -- --all; then
+
+    if [[ $change_it == 1 ]]; then
+      export GIT_COMMITTER_NAME="$USER_NAME"
+      export GIT_COMMITTER_EMAIL="$USER_EMAIL"
+      if [[ $COMMITTER_ONLY != 1 ]]; then
+        export GIT_AUTHOR_NAME="$USER_NAME"
+        export GIT_AUTHOR_EMAIL="$USER_EMAIL"
+      fi
+    fi
+  ' -- --all; then
     error "Change commits failed"
     exit 1
   fi
@@ -186,18 +246,18 @@ Usage: ${0##*/} COMMAND [OPTIONS]
 
 Commands:
   push    Only push part of the local commits while defer other ones
-  change  Change committer and author for your commits
+  chuser  Change committer and author for your commits
   mv      Move folders or files with commit history to another repository
 
 EOF
 }
 
 if [[ $1 == push ]]; then
-  gitx_push ${@:2}
-elif [[ $1 == change ]]; then
-  gitx_change ${@:2}
+  gitx_push "${@:2}"
+elif [[ $1 == chuser ]]; then
+  gitx_chuser "${@:2}"
 elif [[ $1 == mv ]]; then
-  gitx_mv ${@:2}
+  gitx_mv "${@:2}"
 else
   usage
 fi
