@@ -39,6 +39,10 @@ function confirm {
   done
 }
 
+function join_by {
+  local d=$1; shift; printf "$1"; shift; printf "%s" "${@/#/$d}";
+}
+
 function print_commits {
   info "Commits as below:"
   for commit in $@; do
@@ -61,7 +65,7 @@ function get_current_branch {
 #   -n  The number of commits to be pushed
 #   -r  Randomize the number of commits to be pushed
 #   -f  Force to push
-function gitx_push {
+function do_push {
   ensure_git_repo
 
   local branch=$(get_current_branch)
@@ -151,7 +155,7 @@ function gitx_push {
 #   -c  Change committer only
 #   -U  The git user to be changed specified by name
 #   -E  The git user to be changed specified by email
-function gitx_chuser {
+function do_chuser {
   ensure_git_repo
 
   export USER_NAME=$(git config user.name)
@@ -205,7 +209,7 @@ function gitx_chuser {
   info "Change commits with specified user information..."
   if ! git filter-branch -f --env-filter '
     if [[ -z $USER_TO_CHANGE && -z $EMAIL_TO_CHANGE ]]; then
-      change_it=0
+      change_it=1
     elif [[ $USER_TO_CHANGE == $GIT_AUTHOR_NAME || $USER_TO_CHANGE == $GIT_COMMITTER_NAME ]]; then
       change_it=1
     elif [[ $EMAIL_TO_CHANGE == $GIT_AUTHOR_EMAIL || $EMAIL_TO_CHANGE == $GIT_COMMITTER_EMAIL ]]; then
@@ -233,7 +237,101 @@ function gitx_chuser {
   git push --force --all origin
 }
 
-function gitx_mv {
+# OPTIONS:
+#   -p  Preserve the structure when copy directory
+#
+# Examples:
+#   gitx cp file1 file2 https://github.com/someuser/new-repo.git
+#   gitx cp -p foodir https://github.com/someuser/new-repo.git
+function do_cp {
+  ensure_git_repo
+
+  local preserve
+  while [[ $# -gt 0 ]]; do    
+    case "$1" in
+    -p|--preserve)
+      preserve=1
+      shift # past argument
+      ;;
+    *)      # unknown option
+      POSITIONAL+=("$1") # save it in an array for later use
+      shift # past argument
+      ;;
+    esac
+  done
+
+  local src_items=() src_item dest_repo position
+  for (( position=0; position<${#POSITIONAL[@]}-1; position++ )); do
+    src_item=${POSITIONAL[$position]}
+    if [[ -f $src_item || -d $src_item ]]; then
+      export SRC_FILES="$SRC_FILES -e \"\\t\"$src_item$"
+    else
+      error "$src_item not found"
+      exit 1
+    fi
+    src_items+=("$src_item")
+  done
+  dest_repo="${POSITIONAL[$position]}"
+
+  local src_repo_dir=$PWD
+  local src_repo_name=${PWD##*/}
+  local dest_repo_name=${dest_repo##*/}
+  dest_repo_name=${dest_repo_name%.git}
+
+  info "Copy item(s) from $src_repo_name to $dest_repo_name: $(join_by ', ' ${src_items[@]})"
+
+  ! confirm "Are you sure to rewrite local commit history?" && return
+
+  info "Copy repository $src_repo_name to temp directory..."
+  mkdir -p ~/.gitx
+  rm -rf ~/.gitx/$src_repo_name
+  cp -r $PWD ~/.gitx/
+  cd ~/.gitx/$src_repo_name
+
+  info "Start to rewrite local commit history..."
+  git remote rm origin
+  if [[ ${#src_items[@]} == 1 && -d $src_items ]]; then
+    git filter-branch --subdirectory-filter $src_items -- --all
+
+    if [[ $preserve == 1 ]]; then
+      mkdir $src_dir
+      mv *[^$src_dir]* $src_dir
+      git add .
+      git commit -m "Move $src_items from $src_repo_name to $dest_repo_name"
+    fi
+  else
+    git filter-branch -f --index-filter "
+      git ls-files -s | grep $SRC_FILES |
+      GIT_INDEX_FILE=\$GIT_INDEX_FILE.new git update-index --index-info &&
+      [[ -f \$GIT_INDEX_FILE.new ]] && mv \$GIT_INDEX_FILE.new \$GIT_INDEX_FILE ||
+      echo noop
+    " --prune-empty -- --all
+  fi
+
+  info "Clean up local cache..."
+  git reset --hard
+  git gc --aggressive
+  git prune
+  git clean -fd
+
+  cd -
+  cd ..
+  info "Clone $dest_repo_name into directory $PWD/$dest_repo_name..."
+  git clone $dest_repo
+  cd $dest_repo_name
+
+  info "Pull directory $src_dir from repository $src_repo_name..."
+  git remote add $src_repo_name ~/.gitx/$src_repo_name
+  git pull $src_repo_name master --allow-unrelated-histories
+  git remote rm $src_repo_name
+
+  ! confirm "Are you sure to push local changes to remote repository?" && return
+
+  info "Push local changes to remote repository..."
+  git push --force --all origin
+}
+
+function do_rm {
   error "Not supported yet"
 }
 
@@ -247,17 +345,20 @@ Usage: ${0##*/} COMMAND [OPTIONS]
 Commands:
   push    Only push part of the local commits while defer other ones
   chuser  Change committer and author for your commits
-  mv      Move folders or files with commit history to another repository
+  cp      Copy directories or files with commit history to another repository
+  rm      Remove files from commit history
 
 EOF
 }
 
 if [[ $1 == push ]]; then
-  gitx_push "${@:2}"
+  do_push "${@:2}"
 elif [[ $1 == chuser ]]; then
-  gitx_chuser "${@:2}"
-elif [[ $1 == mv ]]; then
-  gitx_mv "${@:2}"
+  do_chuser "${@:2}"
+elif [[ $1 == cp ]]; then
+  do_cp "${@:2}"
+elif [[ $1 == rm ]]; then
+  do_rm "${@:2}"
 else
   usage
 fi
