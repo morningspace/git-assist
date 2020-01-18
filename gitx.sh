@@ -338,14 +338,14 @@ function do_rm {
 function usage {
   cat << EOF
 
-The Git eXtended Tool Set
+The Command Line Tools for Advanced Git Use
  
 Usage: ${0##*/} COMMAND [OPTIONS]
 
 Commands:
-  push    Only push part of the local commits while defer other ones
-  chuser  Change committer and author for your commits
-  cp      Copy directories or files with commit history to another repository
+  push    Only push part of your local commits to remote repository 
+  chuser  Change committer and author (optional) for your commits
+  cp      Copy directory or files with commit history to another repository
   rm      Remove files from commit history
 
 EOF
