@@ -62,9 +62,13 @@ function get_current_branch {
 }
 
 # OPTIONS:
-#   -n  The number of commits to be pushed
-#   -r  Randomize the number of commits to be pushed
-#   -f  Force to push
+#   -n            The number of commits to be pushed
+#   -r, --random  Randomize the number of commits to be pushed
+#   -f, --force   Force to push
+#
+# Examples:
+#   gitx push -5
+#   gitx push -10 -r
 function do_push {
   ensure_git_repo
 
@@ -150,11 +154,15 @@ function do_push {
 }
 
 # OPTIONS:
-#   -u  The git user name
-#   -e  The git user email
-#   -c  Change committer only
-#   -U  The git user to be changed specified by name
-#   -E  The git user to be changed specified by email
+#   -u, --user            The git user name
+#   -e, --email           The git user email
+#   -c, --committer-only  Change committer only
+#   -U, --user-to-change  The git user to be changed specified by name
+#   -E, --email-to-change The git user to be changed specified by email
+#
+# Examples:
+#   gitx chuser -u morningspace -e morningspace@yahoo.com
+#   gitx chuser -u morningspace -e morningspace@yahoo.com -U "William"
 function do_chuser {
   ensure_git_repo
 
@@ -238,7 +246,7 @@ function do_chuser {
 }
 
 # OPTIONS:
-#   -p  Preserve the structure when copy directory
+#   -p, --preserve  Preserve the structure when copy directory
 #
 # Examples:
 #   gitx cp file1 file2 https://github.com/someuser/new-repo.git
