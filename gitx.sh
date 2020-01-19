@@ -312,7 +312,7 @@ function do_cp {
       git ls-files -s | grep $SRC_FILES |
       GIT_INDEX_FILE=\$GIT_INDEX_FILE.new git update-index --index-info &&
       [[ -f \$GIT_INDEX_FILE.new ]] && mv \$GIT_INDEX_FILE.new \$GIT_INDEX_FILE ||
-      echo noop
+      :
     " --prune-empty -- --all
   fi
 
@@ -325,7 +325,7 @@ function do_cp {
   cd -
   cd ..
   info "Clone $dest_repo_name into directory $PWD/$dest_repo_name..."
-  git clone $dest_repo
+  git clone $dest_repo || error "Fail to clone $dest_repo_name"; exit 1
   cd $dest_repo_name
 
   info "Pull directory $src_dir from repository $src_repo_name..."
