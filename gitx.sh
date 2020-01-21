@@ -325,20 +325,29 @@ function do_cp {
   cd -
   cd ..
   info "Clone $dest_repo_name into directory $PWD/$dest_repo_name..."
-  git clone $dest_repo || error "Fail to clone $dest_repo_name"; exit 1
+  if ! git clone $dest_repo; then
+    error "Fail to clone $dest_repo_name"
+    exit 1
+  fi
   cd $dest_repo_name
 
   info "Pull directory $src_dir from repository $src_repo_name..."
   git remote add $src_repo_name ~/.gitx/$src_repo_name
   git pull $src_repo_name master --allow-unrelated-histories
+  git fetch $src_repo_name master --tags
   git remote rm $src_repo_name
 
   ! confirm "Are you sure to push local changes to remote repository?" && return
 
   info "Push local changes to remote repository..."
   git push --force --all origin
+  git push --force --tags origin
 }
 
+# OPTIONS:
+#
+# Examples:
+#   gitx rm file1 file2
 function do_rm {
   error "Not supported yet"
 }
