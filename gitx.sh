@@ -286,7 +286,7 @@ function do_cp {
   local dest_repo_name=${dest_repo##*/}
   dest_repo_name=${dest_repo_name%.git}
 
-  info "Copy item(s) from $src_repo_name to $dest_repo_name: $(join_by ', ' ${src_items[@]})"
+  info "The item(s) to be copied from $src_repo_name to $dest_repo_name: $(join_by ', ' ${src_items[@]})"
 
   ! confirm "Are you sure to rewrite local commit history?" && return
 
@@ -348,8 +348,40 @@ function do_cp {
 #
 # Examples:
 #   gitx rm file1 file2
+#   gitx rm *.md
 function do_rm {
-  error "Not supported yet"
+  ensure_git_repo
+
+  if [[ $# == 0 ]]; then
+    error "You have to specify file(s) to be removed"
+    exit 1
+  fi
+
+  local files=("$@")
+
+  info "The file(s) to be removed: $(join_by ', ' ${files[@]})"
+
+  ! confirm "Are you sure to remove file(s) from local repository?" && return
+
+  info "Remove file(s) from local repository..."
+  for file in ${files[@]}; do
+    export FILE_TO_REMOVE=$file
+    git filter-branch --force --index-filter '
+      git rm --cached --ignore-unmatch $FILE_TO_REMOVE
+    ' --prune-empty --tag-name-filter cat -- --all
+  done
+
+  git for-each-ref --format='delete %(refname)' refs/original | git update-ref --stdin
+  git reflog expire --expire=now --all
+
+  info "Clean up local cache..."
+  git gc --prune=now
+
+  ! confirm "Are you sure to push local changes to remote repository?" && return
+
+  info "Push local changes to remote repository..."
+  git push origin --force --all
+  git push origin --force --tags
 }
 
 function usage {
