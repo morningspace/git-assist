@@ -16,14 +16,15 @@ function error {
 }
 
 function pause {
-  printf "Press Enter to continue or Ctrl+C to stop..."
+  printf "\033[0;37mPress Enter to continue or Ctrl+C to stop...\033[0m"
   read -r
 }
 
 function confirm {
   local input
   while true; do
-    read -r -p "$1 [Y/n] " input
+    printf "\033[0;37m$1\033[0m [Y/n] "
+    read -r input
     input=${input:-Y}
     case $input in
       [yY][eE][sS]|[yY])
@@ -69,7 +70,7 @@ function get_current_branch {
 # Examples:
 #   gitx push -5
 #   gitx push -10 -r
-function do_push {
+function do_ppush {
   ensure_git_repo
 
   local branch=$(get_current_branch)
@@ -122,7 +123,7 @@ function do_push {
 
   ! confirm "Are you sure to change commits in local repository?" && return
 
-  info "Change commits since the lastest commit..."
+  info "Change commits in local repository since the lastest commit..."
   if ! git filter-branch -f --env-filter '
     export GIT_AUTHOR_DATE="$(date +"%c %z")"
     export GIT_COMMITTER_DATE="$(date +"%c %z")"
@@ -149,8 +150,13 @@ function do_push {
   for (( i=$num_commits-1 ; i>=$num_commits-$num_to_push ; i-- )) ; do
     local commit=${gap_commits[i]}
     local command="git push $args origin $commit:$branch"
-    $command
+    if ! $command; then
+      error "Failed to push $commit to remote repository"
+      exit 1
+    fi
   done
+
+  info "\033[0;33mCongratulations!\033[0m All changes have been pushed to remote repository."
 }
 
 # OPTIONS:
@@ -204,8 +210,14 @@ function do_chuser {
     esac
   done
 
-  info "The user name: $USER_NAME"
-  info "The user email: $USER_EMAIL"
+  if [[ -n $USER_TO_CHANGE ]]; then
+    info "The old user name: $USER_TO_CHANGE" 
+  fi
+  info "The new user name: $USER_NAME"
+  if [[ -n $EMAIL_TO_CHANGE ]]; then
+    info "The old user email: $EMAIL_TO_CHANGE" 
+  fi
+  info "The new user email: $USER_EMAIL"
   if [[ $COMMITTER_ONLY == 1 ]]; then
     info "Change committer only."
   else
@@ -242,16 +254,21 @@ function do_chuser {
   ! confirm "Are you sure to push local changes to remote repository?" && return
 
   info "Push local changes to remote repository..."
-  git push --force --all origin
+  if ! git push --force --all origin; then
+    error "Failed to push local changes to remote repository"
+    exit 1
+  fi
+
+  info "\033[0;33mCongratulations!\033[0m All changes have been pushed to remote repository."
 }
 
 # OPTIONS:
 #   -p, --preserve  Preserve the structure when copy directory
 #
 # Examples:
-#   gitx cp file1 file2 https://github.com/someuser/new-repo.git
-#   gitx cp -p foodir https://github.com/someuser/new-repo.git
-function do_cp {
+#   gitx copy file1 file2 https://github.com/someuser/new-repo.git
+#   gitx copy -p foodir https://github.com/someuser/new-repo.git
+function do_copy {
   ensure_git_repo
 
   local preserve
@@ -288,9 +305,9 @@ function do_cp {
 
   info "The item(s) to be copied from $src_repo_name to $dest_repo_name: $(join_by ', ' ${src_items[@]})"
 
-  ! confirm "Are you sure to rewrite local commit history?" && return
+  ! confirm "Are you sure to copy the items?" && return
 
-  info "Copy repository $src_repo_name to temp directory..."
+  info "Copy repository $src_repo_name to temp directory for commit history rewritting..."
   mkdir -p ~/.gitx
   rm -rf ~/.gitx/$src_repo_name
   cp -r $PWD ~/.gitx/
@@ -302,8 +319,8 @@ function do_cp {
     git filter-branch --subdirectory-filter $src_items -- --all
 
     if [[ $preserve == 1 ]]; then
-      mkdir $src_dir
-      mv *[^$src_dir]* $src_dir
+      mkdir $src_items
+      mv *[^$src_items]* $src_items
       git add .
       git commit -m "Move $src_items from $src_repo_name to $dest_repo_name"
     fi
@@ -331,7 +348,7 @@ function do_cp {
   fi
   cd $dest_repo_name
 
-  info "Pull directory $src_dir from repository $src_repo_name..."
+  info "Pull the items from repository $src_repo_name..."
   git remote add $src_repo_name ~/.gitx/$src_repo_name
   git pull $src_repo_name master --allow-unrelated-histories
   git fetch $src_repo_name master --tags
@@ -340,30 +357,34 @@ function do_cp {
   ! confirm "Are you sure to push local changes to remote repository?" && return
 
   info "Push local changes to remote repository..."
-  git push --force --all origin
-  git push --force --tags origin
+  if ! git push --force --all origin || ! git push --force --tags origin; then
+    error "Failed to push local changes to remote repository"
+    exit 1
+  fi
+
+  info "\033[0;33mCongratulations!\033[0m All changes have been pushed to remote repository."
 }
 
 # OPTIONS:
 #
 # Examples:
-#   gitx rm file1 file2
-#   gitx rm *.md
-function do_rm {
+#   gitx delete file1 file2
+#   gitx delete *.md
+function do_delete {
   ensure_git_repo
 
   if [[ $# == 0 ]]; then
-    error "You have to specify file(s) to be removed"
+    error "You have to specify file(s) to be deleted"
     exit 1
   fi
 
   local files=("$@")
 
-  info "The file(s) to be removed: $(join_by ', ' ${files[@]})"
+  info "The file(s) to be deleted: $(join_by ', ' ${files[@]})"
 
-  ! confirm "Are you sure to remove file(s) from local repository?" && return
+  ! confirm "Are you sure to delete file(s)?" && return
 
-  info "Remove file(s) from local repository..."
+  info "Delete file(s) from local repository..."
   for file in ${files[@]}; do
     export FILE_TO_REMOVE=$file
     git filter-branch --force --index-filter '
@@ -380,8 +401,12 @@ function do_rm {
   ! confirm "Are you sure to push local changes to remote repository?" && return
 
   info "Push local changes to remote repository..."
-  git push origin --force --all
-  git push origin --force --tags
+  if ! git push --force --all origin || ! git push --force --tags origin; then
+    error "Failed to push local changes to remote repository"
+    exit 1
+  fi
+
+  info "\033[0;33mCongratulations!\033[0m All changes have been pushed to remote repository."
 }
 
 function usage {
@@ -392,22 +417,22 @@ The Command Line Tools for Advanced Git Use
 Usage: ${0##*/} COMMAND [OPTIONS]
 
 Commands:
-  push    Only push part of your local commits to remote repository 
+  ppush   Only push part of your local commits to remote repository 
   chuser  Change committer and author (optional) for your commits
-  cp      Copy directory or files with commit history to another repository
-  rm      Remove files from commit history
+  copy    Copy directory or files with commit history to another repository
+  delete  Remove files from commit history
 
 EOF
 }
 
-if [[ $1 == push ]]; then
-  do_push "${@:2}"
+if [[ $1 == ppush ]]; then
+  do_ppush "${@:2}"
 elif [[ $1 == chuser ]]; then
   do_chuser "${@:2}"
-elif [[ $1 == cp ]]; then
-  do_cp "${@:2}"
-elif [[ $1 == rm ]]; then
-  do_rm "${@:2}"
+elif [[ $1 == copy ]]; then
+  do_copy "${@:2}"
+elif [[ $1 == delete ]]; then
+  do_delete "${@:2}"
 else
   usage
 fi
