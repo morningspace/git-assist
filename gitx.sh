@@ -162,7 +162,8 @@ function do_ppush {
 # OPTIONS:
 #   -u, --user            The git user name
 #   -e, --email           The git user email
-#   -c, --committer-only  Change committer only
+#   -c, --config-user     Config local repository to use new git user
+#   -C, --committer-only  Change committer only
 #   -U, --user-to-change  The git user to be changed specified by name
 #   -E, --email-to-change The git user to be changed specified by email
 #
@@ -177,6 +178,7 @@ function do_chuser {
   export COMMITTER_ONLY
   export USER_TO_CHANGE
   export EMAIL_TO_CHANGE
+  local config_user
   while [[ $# -gt 0 ]]; do    
     case "$1" in
     -u|--user)
@@ -189,7 +191,11 @@ function do_chuser {
       shift # past argument
       shift # past value
       ;;
-    -c|--committer-only)
+    -c|--config-user)
+      config_user=1
+      shift # past argument
+      ;;
+    -C|--committer-only)
       COMMITTER_ONLY=1
       shift # past argument
       ;;
@@ -213,11 +219,14 @@ function do_chuser {
   if [[ -n $USER_TO_CHANGE ]]; then
     info "The old user name: $USER_TO_CHANGE" 
   fi
-  info "The new user name: $USER_NAME"
   if [[ -n $EMAIL_TO_CHANGE ]]; then
     info "The old user email: $EMAIL_TO_CHANGE" 
   fi
+  info "The new user name: $USER_NAME"
   info "The new user email: $USER_EMAIL"
+  if [[ $config_user == 1 ]]; then
+    info "Config local repository to use new git user"
+  fi
   if [[ $COMMITTER_ONLY == 1 ]]; then
     info "Change committer only."
   else
@@ -249,6 +258,12 @@ function do_chuser {
   ' -- --all; then
     error "Change commits failed"
     exit 1
+  fi
+
+  if [[ $config_user == 1 ]]; then
+    info "Config your local repository to use new git user..."
+    git config user.name $USER_NAME
+    git config user.email $USER_EMAIL
   fi
 
   ! confirm "Are you sure to push local changes to remote repository?" && return
