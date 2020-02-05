@@ -62,7 +62,7 @@ function get_current_branch {
   git rev-parse --abbrev-ref HEAD
 }
 
-function do_ppush {
+function do_push {
   ensure_git_repo
 
   local branch=$(get_current_branch)
@@ -409,16 +409,16 @@ The Command Line Tools to eXtend Git for Advanced Use
 Usage: ${0##*/} COMMAND [OPTIONS]
 
 Commands:
-  ppush   Only push part of your local commits to remote repository 
+  push    Only push part of your local commits to remote repository 
   chuser  Change committer, author of your commits to specified values
   copy    Copy files or directory with commit history from one repository to another repository
   delete  Delete files from repository including corresponding commit history
 "
 
-USAGE_PPUSH="
+USAGE_PUSH="
 Only push part of your local commits to remote repository 
  
-Usage: ${0##*/} ppush [OPTIONS]
+Usage: ${0##*/} push [OPTIONS]
 
 OPTIONS:
   -n            The number of commits to be pushed
@@ -426,8 +426,8 @@ OPTIONS:
   -f, --force   Force to push
 
 Examples:
-  ${0##*/} ppush -5
-  ${0##*/} ppush -10 -r
+  ${0##*/} push -5
+  ${0##*/} push -10 -r
 "
 
 USAGE_CHUSER="
@@ -473,7 +473,7 @@ Examples:
 "
 
 case $1 in
-  "ppush"|"chuser"|"copy"|"delete")
+  "push"|"chuser"|"copy"|"delete")
     if [[ $2 == "-h" || $2 == "--help" ]]; then
       usage $1
     else
