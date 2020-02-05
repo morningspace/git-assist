@@ -62,14 +62,6 @@ function get_current_branch {
   git rev-parse --abbrev-ref HEAD
 }
 
-# OPTIONS:
-#   -n            The number of commits to be pushed
-#   -r, --random  Randomize the number of commits to be pushed
-#   -f, --force   Force to push
-#
-# Examples:
-#   gitx push -5
-#   gitx push -10 -r
 function do_ppush {
   ensure_git_repo
 
@@ -159,17 +151,6 @@ function do_ppush {
   info "\033[0;33mCongratulations!\033[0m All changes have been pushed to remote repository."
 }
 
-# OPTIONS:
-#   -u, --user            The git user name
-#   -e, --email           The git user email
-#   -c, --config-user     Config local repository to use new git user
-#   -C, --committer-only  Change committer only
-#   -U, --user-to-change  The git user to be changed specified by name
-#   -E, --email-to-change The git user to be changed specified by email
-#
-# Examples:
-#   gitx chuser -u morningspace -e morningspace@yahoo.com
-#   gitx chuser -u morningspace -e morningspace@yahoo.com -U "William"
 function do_chuser {
   ensure_git_repo
 
@@ -277,12 +258,6 @@ function do_chuser {
   info "\033[0;33mCongratulations!\033[0m All changes have been pushed to remote repository."
 }
 
-# OPTIONS:
-#   -p, --preserve  Preserve the structure when copy directory
-#
-# Examples:
-#   gitx copy file1 file2 https://github.com/someuser/new-repo.git
-#   gitx copy -p foodir https://github.com/someuser/new-repo.git
 function do_copy {
   ensure_git_repo
 
@@ -380,11 +355,6 @@ function do_copy {
   info "\033[0;33mCongratulations!\033[0m All changes have been pushed to remote repository."
 }
 
-# OPTIONS:
-#
-# Examples:
-#   gitx delete file1 file2
-#   gitx delete *.md
 function do_delete {
   ensure_git_repo
 
@@ -425,29 +395,92 @@ function do_delete {
 }
 
 function usage {
-  cat << EOF
+  if [ $# -eq 0 ]; then
+    echo "$USAGE_GENERAL"
+  else
+    local COMMAND=$(echo $1 | tr '[:lower:]' '[:upper:]')
+    eval "echo \"\$USAGE_$COMMAND\""
+  fi
+}
 
-The Command Line Tools for Advanced Git Use
+USAGE_GENERAL="
+The Command Line Tools to eXtend Git for Advanced Use
  
 Usage: ${0##*/} COMMAND [OPTIONS]
 
 Commands:
   ppush   Only push part of your local commits to remote repository 
-  chuser  Change committer and author (optional) for your commits
-  copy    Copy directory or files with commit history to another repository
-  delete  Remove files from commit history
+  chuser  Change committer, author of your commits to specified values
+  copy    Copy files or directory with commit history from one repository to another repository
+  delete  Delete files from repository including corresponding commit history
+"
 
-EOF
-}
+USAGE_PPUSH="
+Only push part of your local commits to remote repository 
+ 
+Usage: ${0##*/} ppush [OPTIONS]
 
-if [[ $1 == ppush ]]; then
-  do_ppush "${@:2}"
-elif [[ $1 == chuser ]]; then
-  do_chuser "${@:2}"
-elif [[ $1 == copy ]]; then
-  do_copy "${@:2}"
-elif [[ $1 == delete ]]; then
-  do_delete "${@:2}"
-else
-  usage
-fi
+OPTIONS:
+  -n            The number of commits to be pushed
+  -r, --random  Randomize the number of commits to be pushed
+  -f, --force   Force to push
+
+Examples:
+  ${0##*/} ppush -5
+  ${0##*/} ppush -10 -r
+"
+
+USAGE_CHUSER="
+Change committer, author of your commits to specified values
+
+Usage: ${0##*/} chuser [OPTIONS]
+
+OPTIONS:
+  -u, --user            The git user name
+  -e, --email           The git user email
+  -c, --config-user     Config local repository to use new git user
+  -C, --committer-only  Change committer only
+  -U, --user-to-change  The git user to be changed specified by name
+  -E, --email-to-change The git user to be changed specified by email
+
+Examples:
+  ${0##*/} chuser -u morningspace -e morningspace@yahoo.com
+  ${0##*/} chuser -u morningspace -e morningspace@yahoo.com -U \"William\"
+"
+
+USAGE_COPY="
+Copy files or directory with commit history from one repository to another repository
+
+Usage: ${0##*/} copy [OPTIONS] source_file ... target_repoistory
+       ${0##*/} copy [OPTIONS] source_directory target_repoistory
+
+OPTIONS:
+  -p, --preserve  Preserve the structure when copy directory
+
+Examples:
+  ${0##*/} copy file1 file2 https://github.com/someuser/new-repo.git
+  ${0##*/} copy -p foodir https://github.com/someuser/new-repo.git
+"
+
+USAGE_DELETE="
+Delete files from repository including corresponding commit history
+
+Usage: ${0##*/} delete source_file ...
+
+Examples:
+  ${0##*/} delete file1 file2
+  ${0##*/} delete *.md
+"
+
+case $1 in
+  "ppush"|"chuser"|"copy"|"delete")
+    if [[ $2 == "-h" || $2 == "--help" ]]; then
+      usage $1
+    else
+      do_$1 "${@:2}"
+    fi
+    ;;
+  *)
+    usage
+    ;;
+esac
