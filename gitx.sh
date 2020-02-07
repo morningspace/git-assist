@@ -298,10 +298,10 @@ function do_copy {
   ! confirm "Are you sure to copy the items?" && return
 
   info "Copy repository $src_repo_name to temp directory for commit history rewritting..."
-  mkdir -p ~/.gitx
-  rm -rf ~/.gitx/$src_repo_name
-  cp -r $PWD ~/.gitx/
-  cd ~/.gitx/$src_repo_name
+  mkdir -p ~/.xgit
+  rm -rf ~/.xgit/$src_repo_name
+  cp -r $PWD ~/.xgit/
+  cd ~/.xgit/$src_repo_name
 
   info "Start to rewrite local commit history..."
   git remote rm origin
@@ -339,7 +339,7 @@ function do_copy {
   cd $dest_repo_name
 
   info "Pull the items from repository $src_repo_name..."
-  git remote add $src_repo_name ~/.gitx/$src_repo_name
+  git remote add $src_repo_name ~/.xgit/$src_repo_name
   git pull $src_repo_name master --allow-unrelated-histories
   git fetch $src_repo_name master --tags
   git remote rm $src_repo_name
