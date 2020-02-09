@@ -13,6 +13,7 @@ function warn {
 function error {
   # Red
   printf "\033[0;31mERRO\033[0m $@\n"
+  exit 1
 }
 
 function pause {
@@ -54,7 +55,6 @@ function print_commits {
 function ensure_git_repo {
   if ! git remote -v 1>/dev/null 2>&1; then
     error "Not a git repository!"
-    exit 0
   fi
 }
 
@@ -121,7 +121,6 @@ function do_push {
     export GIT_COMMITTER_DATE="$(date +"%c %z")"
   ' $latest_commit..HEAD; then
     error "Change commits failed"
-    exit 1
   fi
 
   info "Get the gap commits again..."
@@ -144,7 +143,6 @@ function do_push {
     local command="git push $args origin $commit:$branch"
     if ! $command; then
       error "Failed to push $commit to remote repository"
-      exit 1
     fi
   done
 
@@ -238,7 +236,6 @@ function do_chuser {
     fi
   ' -- --all; then
     error "Change commits failed"
-    exit 1
   fi
 
   if [[ $config_user == 1 ]]; then
@@ -252,7 +249,6 @@ function do_chuser {
   info "Push local changes to remote repository..."
   if ! git push --force --all origin; then
     error "Failed to push local changes to remote repository"
-    exit 1
   fi
 
   info "\033[0;33mCongratulations!\033[0m All changes have been pushed to remote repository."
@@ -282,7 +278,6 @@ function do_copy {
       export SRC_FILES="$SRC_FILES -e \"\\t\"$src_item$"
     else
       error "$src_item not found"
-      exit 1
     fi
     src_items+=("$src_item")
   done
@@ -334,7 +329,6 @@ function do_copy {
   info "Clone $dest_repo_name into directory $PWD/$dest_repo_name..."
   if ! git clone $dest_repo; then
     error "Fail to clone $dest_repo_name"
-    exit 1
   fi
   cd $dest_repo_name
 
@@ -349,7 +343,6 @@ function do_copy {
   info "Push local changes to remote repository..."
   if ! git push --force --all origin || ! git push --force --tags origin; then
     error "Failed to push local changes to remote repository"
-    exit 1
   fi
 
   info "\033[0;33mCongratulations!\033[0m All changes have been pushed to remote repository."
@@ -360,7 +353,6 @@ function do_delete {
 
   if [[ $# == 0 ]]; then
     error "You have to specify file(s) to be deleted"
-    exit 1
   fi
 
   local files=("$@")
@@ -388,7 +380,6 @@ function do_delete {
   info "Push local changes to remote repository..."
   if ! git push --force --all origin || ! git push --force --tags origin; then
     error "Failed to push local changes to remote repository"
-    exit 1
   fi
 
   info "\033[0;33mCongratulations!\033[0m All changes have been pushed to remote repository."
