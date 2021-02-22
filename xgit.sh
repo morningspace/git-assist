@@ -395,21 +395,23 @@ function usage {
 }
 
 USAGE_GENERAL="
-The Command Line Tools to eXtend Git for Advanced Use
+Git Assistant: The command line tool set to assist your daily work on Git and GitHub
  
-Usage: ${0##*/} COMMAND [OPTIONS]
+Usage: ${0} COMMAND [OPTIONS]
 
 Commands:
   push    Only push part of your local commits to remote repository 
-  chuser  Change committer, author of your commits to specified values
-  copy    Copy files or directory with commit history from one repository to another repository
-  delete  Delete files from repository including corresponding commit history
+  chuser  Change committer and/or author of your commits to specified values
+  copy    Copy multiple files or one directory with commit history from one repository to another
+  delete  Delete files from repository along with corresponding commit history
+
+Use \"${0} COMMAND --help\" for more information about a given command.
 "
 
 USAGE_PUSH="
 Only push part of your local commits to remote repository 
  
-Usage: ${0##*/} push [OPTIONS]
+Usage: ${0} push [OPTIONS]
 
 OPTIONS:
   -n            The number of commits to be pushed
@@ -417,50 +419,50 @@ OPTIONS:
   -f, --force   Force to push
 
 Examples:
-  ${0##*/} push -5
-  ${0##*/} push -10 -r
+  ${0} push -5
+  ${0} push -10 -r
 "
 
 USAGE_CHUSER="
-Change committer, author of your commits to specified values
+Change committer and/or author of your commits to specified values
 
-Usage: ${0##*/} chuser [OPTIONS]
+Usage: ${0} chuser [OPTIONS]
 
 OPTIONS:
   -u, --user            The git user name
   -e, --email           The git user email
-  -c, --config-user     Config local repository to use new git user
-  -C, --committer-only  Change committer only
+  -c, --config-user     When update commits, also config local repository to use new git user
+  -C, --committer-only  Change committer only, otherwise will change both committer and author
   -U, --user-to-change  The git user to be changed specified by name
   -E, --email-to-change The git user to be changed specified by email
 
 Examples:
-  ${0##*/} chuser -u morningspace -e morningspace@yahoo.com
-  ${0##*/} chuser -u morningspace -e morningspace@yahoo.com -U \"William\"
+  ${0} chuser -u morningspace -e morningspace@yahoo.com
+  ${0} chuser -u morningspace -e morningspace@yahoo.com -U \"William\"
 "
 
 USAGE_COPY="
-Copy files or directory with commit history from one repository to another repository
+Copy multiple files or one directory with commit history from one repository to another
 
-Usage: ${0##*/} copy [OPTIONS] source_file ... target_repoistory
-       ${0##*/} copy [OPTIONS] source_directory target_repoistory
+Usage: ${0} copy [OPTIONS] source_file ... target_repoistory
+       ${0} copy [OPTIONS] source_directory target_repoistory
 
 OPTIONS:
   -p, --preserve  Preserve the structure when copy directory
 
 Examples:
-  ${0##*/} copy file1 file2 https://github.com/someuser/new-repo.git
-  ${0##*/} copy -p foodir https://github.com/someuser/new-repo.git
+  ${0} copy file1 file2 https://github.com/someuser/new-repo.git
+  ${0} copy -p foodir https://github.com/someuser/new-repo.git
 "
 
 USAGE_DELETE="
-Delete files from repository including corresponding commit history
+Delete files from repository along with corresponding commit history
 
-Usage: ${0##*/} delete source_file ...
+Usage: ${0} delete source_file ...
 
 Examples:
-  ${0##*/} delete file1 file2
-  ${0##*/} delete *.md
+  ${0} delete file1 file2
+  ${0} delete *.md
 "
 
 case $1 in
