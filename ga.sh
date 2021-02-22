@@ -395,7 +395,7 @@ function usage {
 }
 
 USAGE_GENERAL="
-Git Assistant: The command line tool set to assist your daily work on Git and GitHub
+Git Assist: The command line tool set to assist your daily work on Git and GitHub
  
 Usage: ${0} COMMAND [OPTIONS]
 
