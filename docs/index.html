@@ -24,7 +24,6 @@
   <div id="app"></div>
   <script>
     window.$docsify = {
-      el: "#app",
       name: 'Git Assist',
       repo: 'morningspace/git-assist',
       loadSidebar: true,
@@ -32,10 +31,16 @@
       pagination: {
         crossChapter: true
       },
-      auto2top: true
+      auto2top: true,
     }
   </script>
-  <script src="//cdn.jsdelivr.net/npm/docsify/lib/docsify.min.js"></script>
+  <script src="//unpkg.com/docsify/lib/docsify.min.js"></script>
+  <script src="//unpkg.com/docsify-pagination/dist/docsify-pagination.min.js"></script>
+  <script src="//unpkg.com/prismjs/components/prism-bash.min.js"></script>
+  <script src="//unpkg.com/docsify/lib/plugins/external-script.min.js"></script>
+  <script src="//unpkg.com/docsify/lib/plugins/zoom-image.min.js"></script>
+  <script src="//unpkg.com/docsify/lib/plugins/search.js"></script>
+  <script src="//unpkg.com/docsify-copy-code@2"></script>
   <script>
   ((window.gitter = {}).chat = {}).options = {
     room: 'morningspace/community'
