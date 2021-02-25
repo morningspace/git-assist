@@ -34,12 +34,12 @@ ga cp [OPTIONS] source_directory target_repoistory
 
 To copy multiple files from your current git repository to a new repository:
 ```shell
-$ ga cp file1 file2 https://github.com/someuser/new-repo.git
+ga cp file1 file2 https://github.com/someuser/new-repo.git
 ```
 
 To copy all files under a certain directory while preserve the diretory structure:
 ```shell
-$ ga cp -p foodir https://github.com/someuser/new-repo.git
+ga cp -p foodir https://github.com/someuser/new-repo.git
 ```
 
 To learn how many commands that Git Assist supports, please read [Commands](../commands.md).

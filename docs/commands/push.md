@@ -35,12 +35,12 @@ ga push [OPTIONS]
 
 To push the first 5 commits in the gap caculated by comparing the commit history between the local and remote repository:
 ```shell
-$ ga push -5
+ga push -5
 ```
 
 To push a random number of commits where the number is not more than 10:
 ```shell
-$ ga push -10 -r
+ga push -10 -r
 ```
 
 To learn how many commands that Git Assist supports, please read [Commands](../commands.md).

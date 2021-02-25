@@ -25,12 +25,12 @@ ga rm source_file ...
 
 To delete multiple files and their commit histories from the repository:
 ```shell
-$ ga rm file1 file2
+ga rm file1 file2
 ```
 
 To delete all files whose names match the wildcard, `*.md` in this case, and the commit histories from the repository:
 ```shell
-$ ga rm *.md
+ga rm *.md
 ```
 
 To learn how many commands that Git Assist supports, please read [Commands](../commands.md).

@@ -34,12 +34,12 @@ ga chuser [OPTIONS]
 
 To modify both committer and author for all commits in the repository to use new values:
 ```shell
-$ ga chuser -u morningspace -e morningspace@yahoo.com
+ga chuser -u morningspace -e morningspace@yahoo.com
 ```
 
 To modify both committer and author for all commits whose author name should be `"William"` in the repository:
 ```shell
-$ ga chuser -u morningspace -e morningspace@yahoo.com -U \"William\"
+ga chuser -u morningspace -e morningspace@yahoo.com -U \"William\"
 ```
 
 To learn how many commands that Git Assist supports, please read [Commands](../commands.md).
