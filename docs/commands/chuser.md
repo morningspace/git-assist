@@ -42,4 +42,4 @@ To modify both committer and author for all commits whose author name should be 
 $ ga chuser -u morningspace -e morningspace@yahoo.com -U \"William\"
 ```
 
-To learn how many commands that Git Assist supports, please read [Commands](commands.md).
+To learn how many commands that Git Assist supports, please read [Commands](../commands.md).

@@ -42,4 +42,4 @@ To copy all files under a certain directory while preserve the diretory structur
 $ ga cp -p foodir https://github.com/someuser/new-repo.git
 ```
 
-To learn how many commands that Git Assist supports, please read [Commands](commands.md).
+To learn how many commands that Git Assist supports, please read [Commands](../commands.md).

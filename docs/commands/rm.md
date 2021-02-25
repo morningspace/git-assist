@@ -33,4 +33,4 @@ To delete all files whose names match the wildcard, `*.md` in this case, and the
 $ ga rm *.md
 ```
 
-To learn how many commands that Git Assist supports, please read [Commands](commands.md).
+To learn how many commands that Git Assist supports, please read [Commands](../commands.md).
