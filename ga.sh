@@ -1,5 +1,10 @@
 #/bin/bash
 
+GA_WORKDIR=~/.git-assist
+GA_VERSION=1.0
+
+mkdir -p $GA_WORKDIR
+
 function info {
   # Cyan
   printf "\033[0;36mINFO\033[0m $@\n"
@@ -45,6 +50,25 @@ function join_by {
   local d=$1; shift; printf "$1"; shift; printf "%s" "${@/#/$d}";
 }
 
+function version_gt() {
+  test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"
+}
+
+function check_latest_version {
+  command -v curl >/dev/null 2>&1 || return 0
+
+  curl -s https://raw.githubusercontent.com/morningspace/git-assist/master/VERSION -o $GA_WORKDIR/VERSION >/dev/null &
+
+  if [[ -f $GA_WORKDIR/VERSION ]]; then
+    local latest_version=$(cat $GA_WORKDIR/VERSION)
+    if version_gt $latest_version $GA_VERSION; then
+      warn "You are running an old version of Git Assist, $GA_VERSION."
+      warn "The latest version of GA Asisst, $latest_version is available."
+      warn "Go to https://github.com/morningspace/git-assist to get the latest version.\n"
+    fi
+  fi
+}
+
 function print_commits {
   info "Commits as below:"
   for commit in $@; do
@@ -54,7 +78,7 @@ function print_commits {
 
 function ensure_git_repo {
   if ! git remote -v 1>/dev/null 2>&1; then
-    error "Not a git repository!"
+    error "Not a git repository! Exit."
   fi
 }
 
@@ -155,8 +179,8 @@ function do_chuser {
   export USER_NAME=$(git config user.name)
   export USER_EMAIL=$(git config user.email)
   export COMMITTER_ONLY
-  export USER_TO_CHANGE
-  export EMAIL_TO_CHANGE
+  export FILTER_BY_USER
+  export FILTER_BY_EMAIL
   local config_user
   while [[ $# -gt 0 ]]; do    
     case "$1" in
@@ -178,13 +202,13 @@ function do_chuser {
       COMMITTER_ONLY=1
       shift # past argument
       ;;
-    -U|--user-to-change)
-      USER_TO_CHANGE="$2"
+    -U|--filter-by-user)
+      FILTER_BY_USER="$2"
       shift # past argument
       shift # past value
       ;;
-    -E|--email-to-change)
-      EMAIL_TO_CHANGE="$2"
+    -E|--filter-by-email)
+      FILTER_BY_EMAIL="$2"
       shift # past argument
       shift # past value
       ;;
@@ -195,11 +219,11 @@ function do_chuser {
     esac
   done
 
-  if [[ -n $USER_TO_CHANGE ]]; then
-    info "The old user name: $USER_TO_CHANGE" 
+  if [[ -n $FILTER_BY_USER ]]; then
+    info "The old user name: $FILTER_BY_USER" 
   fi
-  if [[ -n $EMAIL_TO_CHANGE ]]; then
-    info "The old user email: $EMAIL_TO_CHANGE" 
+  if [[ -n $FILTER_BY_EMAIL ]]; then
+    info "The old user email: $FILTER_BY_EMAIL" 
   fi
   info "The new user name: $USER_NAME"
   info "The new user email: $USER_EMAIL"
@@ -216,11 +240,11 @@ function do_chuser {
 
   info "Change commits with specified user information..."
   if ! git filter-branch -f --env-filter '
-    if [[ -z $USER_TO_CHANGE && -z $EMAIL_TO_CHANGE ]]; then
+    if [[ -z $FILTER_BY_USER && -z $FILTER_BY_EMAIL ]]; then
       change_it=1
-    elif [[ $USER_TO_CHANGE == $GIT_AUTHOR_NAME || $USER_TO_CHANGE == $GIT_COMMITTER_NAME ]]; then
+    elif [[ $FILTER_BY_USER == $GIT_AUTHOR_NAME || $FILTER_BY_USER == $GIT_COMMITTER_NAME ]]; then
       change_it=1
-    elif [[ $EMAIL_TO_CHANGE == $GIT_AUTHOR_EMAIL || $EMAIL_TO_CHANGE == $GIT_COMMITTER_EMAIL ]]; then
+    elif [[ $FILTER_BY_EMAIL == $GIT_AUTHOR_EMAIL || $FILTER_BY_EMAIL == $GIT_COMMITTER_EMAIL ]]; then
       change_it=1
     else
       change_it=0
@@ -254,7 +278,7 @@ function do_chuser {
   info "\033[0;33mCongratulations!\033[0m All changes have been pushed to remote repository."
 }
 
-function do_copy {
+function do_cp {
   ensure_git_repo
 
   local preserve
@@ -348,7 +372,7 @@ function do_copy {
   info "\033[0;33mCongratulations!\033[0m All changes have been pushed to remote repository."
 }
 
-function do_delete {
+function do_rm {
   ensure_git_repo
 
   if [[ $# == 0 ]]; then
@@ -400,10 +424,10 @@ Git Assist: The command line tool set to assist your daily work on Git and GitHu
 Usage: ${0} COMMAND [OPTIONS]
 
 Commands:
+  cp      Copy multiple files or one directory with commit history from one repository to another
+  rm      Delete files from repository along with corresponding commit history
   push    Only push part of your local commits to remote repository 
   chuser  Change committer and/or author of your commits to specified values
-  copy    Copy multiple files or one directory with commit history from one repository to another
-  delete  Delete files from repository along with corresponding commit history
 
 Use \"${0} COMMAND --help\" for more information about a given command.
 "
@@ -433,40 +457,40 @@ OPTIONS:
   -e, --email           The git user email
   -c, --config-user     When update commits, also config local repository to use new git user
   -C, --committer-only  Change committer only, otherwise will change both committer and author
-  -U, --user-to-change  The git user to be changed specified by name
-  -E, --email-to-change The git user to be changed specified by email
+  -U, --filter-by-user  The git user to be changed specified by name
+  -E, --filter-by-email The git user to be changed specified by email
 
 Examples:
   ${0} chuser -u morningspace -e morningspace@yahoo.com
   ${0} chuser -u morningspace -e morningspace@yahoo.com -U \"William\"
 "
 
-USAGE_COPY="
+USAGE_CP="
 Copy multiple files or one directory with commit history from one repository to another
 
-Usage: ${0} copy [OPTIONS] source_file ... target_repoistory
-       ${0} copy [OPTIONS] source_directory target_repoistory
+Usage: ${0} cp [OPTIONS] source_file ... target_repoistory
+       ${0} cp [OPTIONS] source_directory target_repoistory
 
 OPTIONS:
   -p, --preserve  Preserve the structure when copy directory
 
 Examples:
-  ${0} copy file1 file2 https://github.com/someuser/new-repo.git
-  ${0} copy -p foodir https://github.com/someuser/new-repo.git
+  ${0} cp file1 file2 https://github.com/someuser/new-repo.git
+  ${0} cp -p foodir https://github.com/someuser/new-repo.git
 "
 
-USAGE_DELETE="
+USAGE_RM="
 Delete files from repository along with corresponding commit history
 
-Usage: ${0} delete source_file ...
+Usage: ${0} rm source_file ...
 
 Examples:
-  ${0} delete file1 file2
-  ${0} delete *.md
+  ${0} rm file1 file2
+  ${0} rm *.md
 "
 
 case $1 in
-  "push"|"chuser"|"copy"|"delete")
+  "push"|"chuser"|"cp"|"rm")
     if [[ $2 == "-h" || $2 == "--help" ]]; then
       usage $1
     else
@@ -477,3 +501,5 @@ case $1 in
     usage
     ;;
 esac
+
+check_latest_version
