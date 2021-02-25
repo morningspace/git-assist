@@ -307,6 +307,10 @@ function do_cp {
   done
   dest_repo="${POSITIONAL[$position]}"
 
+  if [[ -z $dest_repo ]]; then
+    error "You have to specify a target repository to copy to"
+  fi
+
   local src_repo_dir=$PWD
   local src_repo_name=${PWD##*/}
   local dest_repo_name=${dest_repo##*/}
@@ -421,7 +425,7 @@ function usage {
 USAGE_GENERAL="
 Git Assist: The command line tool set to assist your daily work on Git and GitHub
  
-Usage: ${0} COMMAND [OPTIONS]
+Usage: ${0##*/} COMMAND [OPTIONS]
 
 Commands:
   cp      Copy multiple files or one directory with commit history from one repository to another
@@ -429,13 +433,13 @@ Commands:
   push    Only push part of your local commits to remote repository 
   chuser  Change committer and/or author of your commits to specified values
 
-Use \"${0} COMMAND --help\" for more information about a given command.
+Use \"${0##*/} COMMAND --help\" for more information about a given command.
 "
 
 USAGE_PUSH="
 Only push part of your local commits to remote repository 
  
-Usage: ${0} push [OPTIONS]
+Usage: ${0##*/} push [OPTIONS]
 
 OPTIONS:
   -n            The number of commits to be pushed
@@ -443,14 +447,14 @@ OPTIONS:
   -f, --force   Force to push
 
 Examples:
-  ${0} push -5
-  ${0} push -10 -r
+  ${0##*/} push -5
+  ${0##*/} push -10 -r
 "
 
 USAGE_CHUSER="
 Change committer and/or author of your commits to specified values
 
-Usage: ${0} chuser [OPTIONS]
+Usage: ${0##*/} chuser [OPTIONS]
 
 OPTIONS:
   -u, --user            The git user name
@@ -461,32 +465,32 @@ OPTIONS:
   -E, --filter-by-email The git user to be changed specified by email
 
 Examples:
-  ${0} chuser -u morningspace -e morningspace@yahoo.com
-  ${0} chuser -u morningspace -e morningspace@yahoo.com -U \"William\"
+  ${0##*/} chuser -u morningspace -e morningspace@yahoo.com
+  ${0##*/} chuser -u morningspace -e morningspace@yahoo.com -U \"William\"
 "
 
 USAGE_CP="
 Copy multiple files or one directory with commit history from one repository to another
 
-Usage: ${0} cp [OPTIONS] source_file ... target_repoistory
-       ${0} cp [OPTIONS] source_directory target_repoistory
+Usage: ${0##*/} cp [OPTIONS] source_file ... target_repoistory
+       ${0##*/} cp [OPTIONS] source_directory target_repoistory
 
 OPTIONS:
   -p, --preserve  Preserve the structure when copy directory
 
 Examples:
-  ${0} cp file1 file2 https://github.com/someuser/new-repo.git
-  ${0} cp -p foodir https://github.com/someuser/new-repo.git
+  ${0##*/} cp file1 file2 https://github.com/someuser/new-repo.git
+  ${0##*/} cp -p foodir https://github.com/someuser/new-repo.git
 "
 
 USAGE_RM="
 Delete files from repository along with corresponding commit history
 
-Usage: ${0} rm source_file ...
+Usage: ${0##*/} rm source_file ...
 
 Examples:
-  ${0} rm file1 file2
-  ${0} rm *.md
+  ${0##*/} rm file1 file2
+  ${0##*/} rm *.md
 "
 
 case $1 in
