@@ -9,3 +9,5 @@ Git Assist is designed as a set of command line tools that can assist your daily
 * To learn how to install and run Git Assist, please read [Getting Started](getting-started.md).
 * To learn how many commands that Git Assist supports, and what problem that each command resolves, please read [Commands](commands.md).
 * To learn how to contribute, please read [Contributing](contributing.md).
+
+![](assets/git-assist.png)
