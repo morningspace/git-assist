@@ -4,7 +4,7 @@
 
 > Life is coding and writing
 
-I am a software developer who have been in IT field for 10+ years. I would like to write beautiful code, and tell beautiful story to IT people.
+I am a software developer who have been in IT field for 10+ years. I would love to write beautiful code, and tell beautiful story to IT people.
 
 You can find me on:
 * [My Personal Website](https://morningspace.github.io/)
