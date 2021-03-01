@@ -43,4 +43,4 @@ To push a random number of commits where the number is not more than 10:
 ga push -10 -r
 ```
 
-To learn how many commands that Git Assist supports, please read [Commands](../commands.md).
+To learn how many commands that Git Assist supports, please read [Commands](commands.md).
